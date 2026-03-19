@@ -48,35 +48,41 @@ def widget_on_off_Y(button,posX,posY,offset,c_widgets,c_widget_offsets,widgets=[
     
 
 
-wind_button_pos = [(14.5)*cell_size + cell_gap/2, (-0.25)*cell_size + cell_gap/2]
+wind_button_pos = [(14.5)*cell_size + cell_gap/2, (0)*cell_size]
 wind_button = Button(
     screen,
     wind_button_pos[0],wind_button_pos[1],
-    (1)*cell_size-cell_gap, (0.5)*cell_size-cell_gap,
+    (1)*cell_size-cell_gap, (0.4)*cell_size-cell_gap,
 
-    text='WIND', fontSize=16,textVAlign="top",
+    text='WIND', fontSize=16,textVAlign="centre",
     inactiveColour=(250, 250, 255), hoverColour=(200, 200, 200),
     pressedColour=(0, 200, 20), radius=10,
     onClick=lambda: widget_on_off_Y(wind_button,wind_button_pos[0],wind_button_pos[1],[0,1.5],
                                     [wind_widget],
-                                    [[0,2],[0,2]],
+                                    [[0,2]],
                                     [wind_slider,wind_output,wind_dir_output],
-                                    [[0.9,0.5],[0.85,0.75],[0.85,1.2]],
+                                    [[0.9,0.25],[0.85,0.5],[0.85,0.95]],
                                     [wind_dir_pos],
-                                    [[-0.1,-0.9]])
+                                    [[-0.1,-0.75]])
 )
-wind_slider = Slider(screen, 100, -100, 28, 10, min=1, max=5, step=0.5)
+wind_slider = Slider(screen, 100, -100, 35, 10, min=1, max=5, step=0.5)
 wind_output = Button(screen, 475, -200, 45, 30, fontSize=15,radius=5)
 wind_output.disable()  # Act as label instead of textbox
 
 wind_dir_output = Button(screen, 475, -200, 45, 30, fontSize=15,radius=5)
 wind_dir_output.disable()  # Act as label instead of textbox
 
-wind_dir_pos=[300,300]
+
 wind_dir_back=pg.image.load("IMG/wind_dir_back.png")
 wind_dir_back.convert()
 wind_dir_arrow=pg.image.load("IMG/wind_dir_arrow_2.png")
 wind_dir_arrow.convert()
+water_dir_back=pg.image.load("IMG/water_dir_back.png")
+water_dir_back.convert()
+water_dir=pg.image.load("IMG/water_dir.png")
+water_dir.convert()
+
+wind_dir_pos=[-300,-300]
 wind_dir_size=0.2
 wind_dir_angle=0
 
@@ -87,16 +93,50 @@ mouse = pg.mouse.get_pos()
 
 run=True
 
+t=0
+
 while run:
   events = pg.event.get()
   screen.fill((water_color))
   img = pg.transform.rotozoom(wind_dir_back, 0, wind_dir_size)
-  img_arrow = pg.transform.rotozoom(wind_dir_arrow, wind_dir_angle, wind_dir_size)
+  img_arrow = pg.transform.rotozoom(wind_dir_arrow, -wind_dir_angle, wind_dir_size)
   rect = img.get_rect()
   rect.center =wind_dir_pos
   rect_arrow = img_arrow.get_rect()
   rect_arrow.center = wind_dir_pos
   
+  for i in range(width_aspect):
+    for j in range(heigth_aspect):
+      scale_factor = cell_size / water_dir_back.get_width()
+      water_back_img=pg.transform.rotozoom(water_dir_back, 0, scale_factor)
+      water_back_rect = water_back_img.get_rect()
+      water_back_rect.topleft =[i*cell_size,j*cell_size]
+      water_img=pg.transform.rotozoom(water_dir, -wind_dir_angle, scale_factor)
+      water_rect = water_img.get_rect()
+      water_rect.center =[i*cell_size+cell_size/2,j*cell_size+cell_size/2]
+      # Make a copy of your image first so you don't overwrite the original
+      tinted_img = water_back_img.copy()
+      # Example: tint with a light blue color
+      tint_color = (130, 190, 255)  # RGB
+      # Apply the tint
+      tinted_img.fill(tint_color, special_flags=pg.BLEND_RGB_MULT)
+      # Then blit as usual
+      screen.blit(tinted_img, water_back_rect)
+      # Make a copy of your image first so you don't overwrite the original
+      tinted_img = water_img.copy()
+      tint_color = (120, 180, 255)  # RGB
+      # Apply the tint
+      tinted_img.fill(tint_color, special_flags=pg.BLEND_RGB_MULT)
+      # Then blit as usual
+      screen.blit(tinted_img, water_rect)
+
+  t+=wind_slider.getValue()*5
+  if(t>=cell_size*width_aspect/2+50):
+    t=-cell_size*width_aspect/2-50
+  for x in range(30):
+    #(sin(a) t + cos(t * 0.5) - 1, cos(a) t + sin(t * 0.5))
+    pg.draw.circle(screen, (255,255,255), [cell_size*width_aspect/2+math.sin(math.radians(-wind_dir_angle))*(x+t) + math.cos((x+t) * 0.5) - 1, cell_size*heigth_aspect/2+math.cos(math.radians(-wind_dir_angle))*(x+t) + math.sin((x+t) * 0.5)], 1)
+    #[x+t,300+2*math.sin(0.1*(x+t))]
   for event in events:
     if event.type==pg.QUIT:
       run = False
@@ -105,14 +145,14 @@ while run:
       x = mouse[0] - wind_dir_pos[0]
       y = mouse[1] - wind_dir_pos[1]
 
-      wind_dir_angle = math.degrees(-math.atan2(y, x))-90
+      wind_dir_angle = math.degrees(math.atan2(x,-y))% 360
   
   pg.draw.rect(screen, (255,255,255), wind_widget,border_radius=10)
 
   screen.blit(img, rect)
-  pg.draw.rect(screen, "RED", rect, 1)
+  #pg.draw.rect(screen, "RED", rect, 1)
   screen.blit(img_arrow, rect_arrow)
-  pg.draw.rect(screen, "RED", rect_arrow, 1)
+  #pg.draw.rect(screen, "RED", rect_arrow, 1)
 
   key= pg.key.get_pressed()
 
@@ -120,6 +160,8 @@ while run:
     run = False
 
   wind_output.setText(str(float(wind_slider.getValue()))+" m/s")
+  wind_dir_output.setText(str(int(wind_dir_angle-180)% 360)+"°")
+
   pg_w.update(events)  # Call once every loop to allow widgets to render and listen
   pg.display.update()
 
