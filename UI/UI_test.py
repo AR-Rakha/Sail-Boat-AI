@@ -2,9 +2,9 @@ import pygame as pg
 import pygame_widgets as pg_w
 from pygame_widgets.button import Button
 from pygame_widgets.slider import Slider
-from pygame_widgets.textbox import TextBox
 
 import math
+import random
 
 pg.init()
 
@@ -14,9 +14,11 @@ heigth_aspect=9
 cell_size=90
 cell_gap=10
 
+window_size=[cell_size*width_aspect,cell_size*heigth_aspect]
+
 water_color=[140, 200, 255]
 
-screen = pg.display.set_mode((cell_size*width_aspect,cell_size*heigth_aspect),pg.SHOWN)
+screen = pg.display.set_mode(window_size,pg.SHOWN)
 pg.display.set_caption("Sail Boat Test UI")
 
 def widget_on_off_Y(button,posX,posY,offset,c_widgets,c_widget_offsets,widgets=[],widget_offsets=[],p_widgets=[],p_widget_offsets=[]):
@@ -65,7 +67,7 @@ wind_button = Button(
                                     [wind_dir_pos],
                                     [[-0.1,-0.75]])
 )
-wind_slider = Slider(screen, 100, -100, 35, 10, min=1, max=5, step=0.5)
+wind_slider = Slider(screen, 100, -100, 35, 10, min=10, max=20, step=1)
 wind_output = Button(screen, 475, -200, 45, 30, fontSize=15,radius=5)
 wind_output.disable()  # Act as label instead of textbox
 
@@ -94,6 +96,41 @@ mouse = pg.mouse.get_pos()
 run=True
 
 t=0
+
+class wind:
+  def __init__(self,length,offset,window_size):
+    self.t = 0
+    self.l = length
+    self.window_size=window_size
+    self.pos=[0,0]
+    self.offset=offset
+
+  def run_wind(self,wind_speed,wind_angle):
+    self.t -= wind_speed
+
+    center_x = cell_size * width_aspect/2
+    center_y = cell_size * heigth_aspect/2
+
+    angle = math.radians(-wind_angle)
+
+    for x in range(int(self.l)):
+      self.pos = [center_x + math.sin(angle) * (x+self.t) + math.cos((x+self.t) * 0.2) - 1 + self.offset[0] ,
+                center_y  + math.cos(angle) * (x+self.t) + math.sin((x+self.t) * 0.2)     + self.offset[1]]
+      #(sin(a) t + cos(t * 0.5) - 1, cos(a) t + sin(t * 0.5))
+
+      self.pos = [self.pos[0]%self.window_size[0],self.pos[1]%self.window_size[1]]
+
+      pg.draw.circle(screen, (255,255,255), self.pos, 1)
+
+wind_total=10
+wind_list=[]
+
+for w in range(wind_total):
+  wind_list.append(wind(random.uniform(20,25),
+                        [random.uniform(-cell_size*width_aspect/4*3,cell_size*width_aspect/4*3),
+                         random.uniform(-cell_size*heigth_aspect/4*3,cell_size*heigth_aspect/4*3)],
+                         window_size))
+
 
 while run:
   events = pg.event.get()
@@ -130,13 +167,10 @@ while run:
       # Then blit as usual
       screen.blit(tinted_img, water_rect)
 
-  t+=wind_slider.getValue()*5
-  if(t>=cell_size*width_aspect/2+50):
-    t=-cell_size*width_aspect/2-50
-  for x in range(30):
-    #(sin(a) t + cos(t * 0.5) - 1, cos(a) t + sin(t * 0.5))
-    pg.draw.circle(screen, (255,255,255), [cell_size*width_aspect/2+math.sin(math.radians(-wind_dir_angle))*(x+t) + math.cos((x+t) * 0.5) - 1, cell_size*heigth_aspect/2+math.cos(math.radians(-wind_dir_angle))*(x+t) + math.sin((x+t) * 0.5)], 1)
-    #[x+t,300+2*math.sin(0.1*(x+t))]
+  for w in range(wind_total):
+    wind_list[w].run_wind(wind_slider.getValue(),wind_dir_angle)
+
+
   for event in events:
     if event.type==pg.QUIT:
       run = False
@@ -159,7 +193,7 @@ while run:
   if key[pg.K_ESCAPE]:
     run = False
 
-  wind_output.setText(str(float(wind_slider.getValue()))+" m/s")
+  wind_output.setText(str(int(wind_slider.getValue()))+" kn")
   wind_dir_output.setText(str(int(wind_dir_angle-180)% 360)+"°")
 
   pg_w.update(events)  # Call once every loop to allow widgets to render and listen
