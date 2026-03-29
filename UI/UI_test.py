@@ -86,7 +86,12 @@ water_dir.convert()
 
 wind_dir_pos=[-300,-300]
 wind_dir_size=0.2
-wind_dir_angle=0
+wind_angle=0
+
+pre_wind_angle=0
+interp_wind_angle=0
+interp_time=0
+interp_duration=10
 
 wind_widget=pg.Rect((14)*cell_size+cell_gap/2, (-2)*cell_size+cell_gap/2,(2)*cell_size-cell_gap, (1.5)*cell_size-cell_gap)
 
@@ -102,10 +107,10 @@ class wind:
     self.t = 0
     self.l = length
     self.window_size=window_size
-    self.pos=[0,0]
-    self.offset=offset
+    self.pos=[offset[0],offset[1]]
 
   def run_wind(self,wind_speed,wind_angle):
+    
     self.t -= wind_speed
 
     center_x = cell_size * width_aspect/2
@@ -119,10 +124,26 @@ class wind:
       #(sin(a) t + cos(t * 0.5) - 1, cos(a) t + sin(t * 0.5))
 
       self.pos = [self.pos[0]%self.window_size[0],self.pos[1]%self.window_size[1]]
+      s = pg.Surface((2,2), pg.SRCALPHA)
+      pg.draw.circle(s, (255,255,255,50), (1,1), 1)
+      screen.blit(s, self.pos)
 
-      pg.draw.circle(screen, (255,255,255), self.pos, 1)
+  def run_wind_2(self,wind_speed,wind_angle):
+    self.pos[0] += math.sin(math.radians(wind_angle))*wind_speed
+    self.pos[1] += -math.cos(math.radians(wind_angle))*wind_speed
+    self.pos = [self.pos[0]%self.window_size[0],self.pos[1]%self.window_size[1]]
+    s = pg.Surface((3,3), pg.SRCALPHA)
+    pg.draw.circle(s, (255,255,255,50), (1.5,1.5), 1.5)
+    for x in range(int(self.l)):
+      
+      w_pos=self.pos.copy()
+      w_pos[0]+=math.sin(math.radians(wind_angle))*x
+      w_pos[1]+=-math.cos(math.radians(wind_angle))*x
+      screen.blit(s, w_pos)
 
-wind_total=10
+
+
+wind_total=50
 wind_list=[]
 
 for w in range(wind_total):
@@ -136,7 +157,7 @@ while run:
   events = pg.event.get()
   screen.fill((water_color))
   img = pg.transform.rotozoom(wind_dir_back, 0, wind_dir_size)
-  img_arrow = pg.transform.rotozoom(wind_dir_arrow, -wind_dir_angle, wind_dir_size)
+  img_arrow = pg.transform.rotozoom(wind_dir_arrow, -wind_angle, wind_dir_size)
   rect = img.get_rect()
   rect.center =wind_dir_pos
   rect_arrow = img_arrow.get_rect()
@@ -148,7 +169,7 @@ while run:
       water_back_img=pg.transform.rotozoom(water_dir_back, 0, scale_factor)
       water_back_rect = water_back_img.get_rect()
       water_back_rect.topleft =[i*cell_size,j*cell_size]
-      water_img=pg.transform.rotozoom(water_dir, -wind_dir_angle, scale_factor)
+      water_img=pg.transform.rotozoom(water_dir, -interp_wind_angle, scale_factor)
       water_rect = water_img.get_rect()
       water_rect.center =[i*cell_size+cell_size/2,j*cell_size+cell_size/2]
       # Make a copy of your image first so you don't overwrite the original
@@ -168,7 +189,7 @@ while run:
       screen.blit(tinted_img, water_rect)
 
   for w in range(wind_total):
-    wind_list[w].run_wind(wind_slider.getValue(),wind_dir_angle)
+    wind_list[w].run_wind_2(wind_slider.getValue(),interp_wind_angle)
 
 
   for event in events:
@@ -178,9 +199,16 @@ while run:
       mouse = event.pos
       x = mouse[0] - wind_dir_pos[0]
       y = mouse[1] - wind_dir_pos[1]
+      pre_wind_angle = interp_wind_angle
+      interp_time = 0
+      wind_angle = math.degrees(math.atan2(x,-y))% 360
 
-      wind_dir_angle = math.degrees(math.atan2(x,-y))% 360
-  
+  def easeOutQuart(x):
+    return 1 - (1 - x)**4
+
+  interp_time+=1/interp_duration
+  interp_wind_angle = pre_wind_angle + ((wind_angle - pre_wind_angle+180)%360-180)*easeOutQuart(min(1,interp_time))
+  interp_wind_angle %= 360
   pg.draw.rect(screen, (255,255,255), wind_widget,border_radius=10)
 
   screen.blit(img, rect)
@@ -194,7 +222,7 @@ while run:
     run = False
 
   wind_output.setText(str(int(wind_slider.getValue()))+" kn")
-  wind_dir_output.setText(str(int(wind_dir_angle-180)% 360)+"°")
+  wind_dir_output.setText(str(int(wind_angle-180)% 360)+"°")
 
   pg_w.update(events)  # Call once every loop to allow widgets to render and listen
   pg.display.update()

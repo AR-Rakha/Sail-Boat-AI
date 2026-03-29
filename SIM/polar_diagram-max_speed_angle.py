@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import interp1d
 
 
 wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,160,170,180,
@@ -24,7 +25,7 @@ speed_15=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
 speed_16=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.6, 1.4, 1.6, 2.5, 2.7, 3.6, 3.5, 3.9, 3.7]
 speeds=[speed_0,speed_1,speed_2,speed_3,speed_4,speed_5,speed_6,speed_7,speed_8,speed_9,speed_10,speed_11,speed_12,speed_13,speed_14,speed_15,speed_16]
 
-all_speeds=[speed_0,speed_1,speed_2,speed_3,speed_4,speed_5,speed_6,speed_7,speed_8,speed_9,speed_10,speed_11,speed_12,speed_13,speed_14,speed_15,speed_16]
+all_speeds=speeds
 #print(speeds)
 
 #print(np.asarray(wind_angles)+180)
@@ -46,8 +47,29 @@ r = [0.2, 0.5, 0.8, 1.2, 1.5, 1.8, 2.1, 2.5, 2.8, 3.0, 2.8, 2.5, 2.1, 1.8, 1.5, 
 plt.legend(bbox_to_anchor=(1.5, 1))
 plt.show()'''
 
-sp=2
+# Choose one speed line, e.g., speed_2
+sp = 2
+angles = np.array(wind_angles)  # full 0-360 angles
+speeds_line = np.array(speeds[sp])
 
-plt.polar(np.asarray(wind_angles)*np.pi/180, speeds[sp], marker='o', linestyle='solid',lw=1,ms=2, label=str(wind_speeds[sp])+" knots")
+'''plt.polar(np.asarray(wind_angles)*np.pi/180, speeds[sp], marker='o', linestyle='solid',lw=1,ms=2, label=str(wind_speeds[sp])+" knots")
 plt.legend(bbox_to_anchor=(1.5, 1))
-plt.show()
+plt.show()'''
+
+
+# Interpolation
+f_speed = interp1d(angles, speeds_line, kind='cubic')
+
+# Smooth angles for plotting
+theta_deg = np.linspace(0, 360, 360)
+theta_rad = np.radians(theta_deg)
+r = f_speed(theta_deg)
+
+# Plot
+plt.figure(figsize=(7,7))
+ax = plt.subplot(111, polar=True)
+ax.plot(theta_rad, r, linestyle='solid', marker=None)
+ax.set_theta_zero_location('N')
+ax.set_theta_direction(-1)
+plt.title(f"Boat speed vs wind angle ({wind_speeds[sp]} knots)")
+plt.show() 
