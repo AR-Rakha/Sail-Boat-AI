@@ -110,35 +110,17 @@ class wind:
     self.pos=[offset[0],offset[1]]
 
   def run_wind(self,wind_speed,wind_angle):
-    
-    self.t -= wind_speed
-
-    center_x = cell_size * width_aspect/2
-    center_y = cell_size * heigth_aspect/2
-
-    angle = math.radians(-wind_angle)
-
-    for x in range(int(self.l)):
-      self.pos = [center_x + math.sin(angle) * (x+self.t) + math.cos((x+self.t) * 0.2) - 1 + self.offset[0] ,
-                center_y  + math.cos(angle) * (x+self.t) + math.sin((x+self.t) * 0.2)     + self.offset[1]]
-      #(sin(a) t + cos(t * 0.5) - 1, cos(a) t + sin(t * 0.5))
-
-      self.pos = [self.pos[0]%self.window_size[0],self.pos[1]%self.window_size[1]]
-      s = pg.Surface((2,2), pg.SRCALPHA)
-      pg.draw.circle(s, (255,255,255,50), (1,1), 1)
-      screen.blit(s, self.pos)
-
-  def run_wind_2(self,wind_speed,wind_angle):
     self.pos[0] += math.sin(math.radians(wind_angle))*wind_speed
     self.pos[1] += -math.cos(math.radians(wind_angle))*wind_speed
     self.pos = [self.pos[0]%self.window_size[0],self.pos[1]%self.window_size[1]]
     s = pg.Surface((3,3), pg.SRCALPHA)
     pg.draw.circle(s, (255,255,255,50), (1.5,1.5), 1.5)
+    self.t += wind_speed
     for x in range(int(self.l)):
       
       w_pos=self.pos.copy()
-      w_pos[0]+=math.sin(math.radians(wind_angle))*x
-      w_pos[1]+=-math.cos(math.radians(wind_angle))*x
+      w_pos[0]+=math.sin(math.radians(wind_angle))*x + math.cos((x+self.t) * 0.2)
+      w_pos[1]+=-math.cos(math.radians(wind_angle))*x + math.sin((x+self.t) * 0.2)
       screen.blit(s, w_pos)
 
 
@@ -189,7 +171,7 @@ while run:
       screen.blit(tinted_img, water_rect)
 
   for w in range(wind_total):
-    wind_list[w].run_wind_2(wind_slider.getValue(),interp_wind_angle)
+    wind_list[w].run_wind(wind_slider.getValue(),interp_wind_angle)
 
 
   for event in events:
