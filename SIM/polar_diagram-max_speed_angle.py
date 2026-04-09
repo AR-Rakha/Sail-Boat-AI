@@ -60,6 +60,11 @@ plt.show()'''
 # Interpolation
 f_speed = interp1d(angles, speeds_line, kind='cubic')
 
+def rel_angle(wind_angle,boat_angle):
+  return (wind_angle - boat_angle) % 360
+
+print(f_speed(rel_angle(90,0)))
+
 # Smooth angles for plotting
 theta_deg = np.linspace(0, 360, 360)
 theta_rad = np.radians(theta_deg)
