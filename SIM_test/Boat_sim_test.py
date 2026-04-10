@@ -76,6 +76,8 @@ class boat:
     self.acc[0] += fx * speed_error * strength
     self.acc[1] += fy * speed_error * strength
 
+    print(speed_error)
+
     
 
   def getBoatSpeed(self,wind_speed,wind_angle,scala=1):
@@ -144,7 +146,7 @@ while run:
     player_boat.sail(0,0.001)
   else:
     
-    player_boat.sail(player_boat.getBoatSpeed(10,270,0.01),0.004)
+    player_boat.sail(player_boat.getBoatSpeed(15,270,0.005),0.002)
 
   player_boat.update()
 
