@@ -51,6 +51,11 @@ plt.show()'''
 sp = 2
 angles = np.array(wind_angles)  # full 0-360 angles
 speeds_line = np.array(speeds[sp])
+my_speeds_line = [0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
+
+my_speeds_line.extend(list(reversed(my_speeds_line[:-1])))
+
+my_speeds_line = np.array(my_speeds_line)
 
 '''plt.polar(np.asarray(wind_angles)*np.pi/180, speeds[sp], marker='o', linestyle='solid',lw=1,ms=2, label=str(wind_speeds[sp])+" knots")
 plt.legend(bbox_to_anchor=(1.5, 1))
@@ -58,7 +63,7 @@ plt.show()'''
 
 
 # Interpolation
-f_speed = interp1d(angles, speeds_line, kind='cubic')
+f_speed = interp1d(angles, my_speeds_line, kind='cubic')
 
 def rel_angle(wind_angle,boat_angle):
   return (wind_angle - boat_angle) % 360
