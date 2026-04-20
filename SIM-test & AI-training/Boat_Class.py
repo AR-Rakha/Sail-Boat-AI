@@ -4,53 +4,70 @@ from scipy.interpolate import interp1d
 import pygame as pg
 import random as r
 
+def lengthV(v=[0,1]):
+  return math.sqrt(v[0]**2+v[1]**2)
+
 def dot(v1=[0,1],v2=[1,0]):
-  return v1[0]*v2[0]+v1[1]*v2[1]
+    v1_length = lengthV(v1)
+    v2_length = lengthV(v2)
+    
+    if v1_length != 0:
+      v1_norm = [v1[0]/v1_length,v1[1]/v1_length]
+    else:
+      v1_norm = v1
+
+    if v2_length != 0:
+      v2_norm = [v2[0]/v2_length,v2[1]/v2_length]
+    else:
+      v2_norm = v2
+
+    return v1_norm[0]*v2_norm[0]+v1_norm[1]*v2_norm[1]
 
 class boat:
-  def __init__(self,pos,angle,size,color):
-    self.pos=pos
-    self.vel=[0,0]
-    self.acc=[0,0]
+  def __init__(self,pos,angle):
+    self.pos = pos
+    self.vel = [0,0]
+    self.acc = [0,0]
 
     self.angle = angle
-    self.angle_vel=0
-    self.angle_acc=0
+    self.angle_vel = 0
+    self.angle_acc = 0
 
-    self.maxAngleVel=100
+    self.maxAngleVel = 100
+    self.sailAccelerationStrength = 1
 
     self.turnStrength = 1
     self.sidewaysGrip = 1
     self.windSpeed = 0
     self.windAngle = 0
-    self.sailAccelerationStrength=1
-    
 
-    self.size = size
+    self.size = 50
     self.limit = [100,100]
+    self.windowSize=[0,0]
 
     self.boat = None
     self.boat_rect = None
 
-    self.scale_factor=1
-    
-    self.color=color
+    self.scale_factor = 1
+    self.color = [0,0,0]
 
-    self.wind_angles=[]
-    self.speeds_line=[]
+    self.wind_angles = []
+    self.speeds_line = []
 
     self.f_speed = 0
 
-    self.points=[]
-    self.targetIndex=0
+    self.points = []
+    self.targetIndex = 0
 
-    self.targetV=[]
-    self.nextV=[]
+    self.targetV = []
+    self.nextV = []
 
-    self.forwardV=[math.cos(self.angle),math.sin(self.angle)]
-    self.rigthV=[math.sin(self.angle),math.cos(self.angle)]
-    self.windV=[]
+    self.forwardV = [math.cos(self.angle),math.sin(self.angle)]
+    self.rigthV = [math.sin(self.angle),math.cos(self.angle)]
+    self.windV = []
 
+    self.forwardSpeed = 0
+    self.sidewaysSpeed = 0
     self.windDirX = 0
     self.windDirY = 0
     self.targetDirY = 0
@@ -59,26 +76,26 @@ class boat:
     self.nextDirX = 0 
 
 
-    self.fps=400
+    self.fps = 400
     self.dt = 1/self.fps
 
-    self.timeLimit=0 # seconds
-    self.time=0
+    self.timeLimit = 0 # seconds
+    self.time = 0
 
-    self.reward=0
-    self.tsReward=0 # reward this TimeStep (ts)
+    self.reward = 0
+    self.tsReward = 0 # reward this TimeStep (ts)
 
     self.pointReward = 1
     self.pointReached = False
     
   def setsSailData(self,angles,speeds):
-    self.wind_angles=angles
-    self.speeds_line=speeds
+    self.wind_angles = angles
+    self.speeds_line = speeds
 
     self.f_speed = interp1d(self.wind_angles, self.speeds_line, kind='cubic')
 
   def setFPS(self,fps=400):
-    self.fps=fps
+    self.fps = fps
     self.dt = 1/self.fps
 
   def setImg(self,img):
@@ -86,15 +103,15 @@ class boat:
     self.boat = img
 
   def setMaxAngleVel(self,max_angle_vel):
-    self.maxAngleVel=max_angle_vel
+    self.maxAngleVel = max_angle_vel
 
   def setTurnStrength(self,turn_strength):
-    self.turnStrength =turn_strength
+    self.turnStrength = turn_strength
 
   def setSidewaysGrip(self,sidewaysGrip):
     self.sidewaysGrip = sidewaysGrip
   def setSpeedScala(self,scala):
-    self.speedScala=scala
+    self.speedScala = scala
 
   def setWind(self,wind_speed,wind_angle):
     self.windSpeed = wind_speed
@@ -109,6 +126,15 @@ class boat:
   def setLimit(self,limit):
     self.limit = limit
 
+  def setColor(self,color):
+    self.color = color
+
+  def setSize(self,size):
+    self.size = size
+
+  def setWindowSize(self,window_size):
+    self.windowSize = window_size
+
   def show(self,angleOffset,screen):
     boat_img = pg.transform.rotozoom(self.boat, (-self.angle+angleOffset), self.scale_factor)
     self.boat_rect = boat_img.get_rect()
@@ -119,21 +145,23 @@ class boat:
   
   def turn(self,turnDir):
     if turnDir == 0:
-      self.angle_acc =  (self.maxAngleVel - abs(self.angle_vel))*-self.turnStrength
+      self.angle_acc = (self.maxAngleVel - abs(self.angle_vel)) *-self.turnStrength
+    elif turnDir == 1:
+      self.angle_acc = (self.maxAngleVel - abs(self.angle_vel)) * self.turnStrength
     else:
-      self.angle_acc =  (self.maxAngleVel - abs(self.angle_vel))*self.turnStrength
+      self.angle_acc = 0
 
   def sail(self,wind=True):
     
     fx = math.sin(math.radians(self.angle))
     fy = -math.cos(math.radians(self.angle))
 
-    forward_speed = self.vel[0]*fx + self.vel[1]*fy
+    self.forwardSpeed = self.vel[0]*fx + self.vel[1]*fy
 
     if wind:
-      speed_error = self.getBoatSpeed() - forward_speed
+      speed_error = self.getBoatSpeed() - self.forwardSpeed
     else:
-      speed_error = 0 - forward_speed
+      speed_error = 0 - self.forwardSpeed
 
     
     self.acc[0] += fx * speed_error * self.sailAccelerationStrength
@@ -143,7 +171,7 @@ class boat:
 
 
   def getBoatSpeed(self):
-    return self.f_speed(self.rel_angle(self.windAngle,self.angle))*self.windSpeed*self.speedScala
+    return self.f_speed(self.rel_angle(self.windAngle,self.angle)) * self.windSpeed * self.speedScala
 
   def rel_angle(self,wind_angle,boat_angle):
     delta = (wind_angle - boat_angle) % 360
@@ -161,10 +189,10 @@ class boat:
     sy = fx
 
     # remove sideways drift
-    sideways_speed = self.vel[0]*sx + self.vel[1]*sy
+    self.sidewaysSpeed = self.vel[0]*sx + self.vel[1]*sy
     
-    self.acc[0] -= sx * sideways_speed * self.sidewaysGrip
-    self.acc[1] -= sy * sideways_speed * self.sidewaysGrip
+    self.acc[0] -= sx * self.sidewaysSpeed * self.sidewaysGrip
+    self.acc[1] -= sy * self.sidewaysSpeed * self.sidewaysGrip
 
     # apply acceleration to velocity
     self.vel[0] += self.acc[0] * self.dt
@@ -181,16 +209,16 @@ class boat:
     self.forwardV=[math.sin(math.radians(self.angle)),-math.cos(math.radians(self.angle))]
     self.rigthV=[math.cos(math.radians(self.angle)),-math.sin(math.radians(self.angle))]
 
-  def generatePoints(self,window_size,borderOffset,num=10,minDist=90):
+  def generatePoints(self,borderOffset=90,num=10,minDist=180):
     self.targetIndex=0
-    self.points=[[r.randrange(0+borderOffset,window_size[0]-borderOffset),r.randrange(0+borderOffset,window_size[1]-borderOffset)]]
+    self.points=[[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]]
     for x in range(num-1):
       toClose=True
-      randP=[r.randrange(0+borderOffset,window_size[0]-borderOffset),r.randrange(0+borderOffset,window_size[1]-borderOffset)]
+      randP=[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]
 
       while toClose:
         toClose=False
-        randP=[r.randrange(0+borderOffset,window_size[0]-borderOffset),r.randrange(0+borderOffset,window_size[1]-borderOffset)]
+        randP=[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]
         for d in range(len(self.points)):
           if math.sqrt((self.points[d][0]-randP[0])**2+(self.points[d][1]-randP[1])**2)<minDist:
             toClose=True
@@ -199,52 +227,53 @@ class boat:
       self.points.append(randP.copy())
     
   def setTimeLimit(self,limitInSeconds):
-    self.timeLimit=limitInSeconds
+    self.timeLimit = limitInSeconds
 
   def timeReset(self):
-    if self.time/self.fps>=self.timeLimit:
+    if self.time/self.fps >= self.timeLimit:
       self.reset()
       self.resetReward()
 
-  def reset(self,startangle=0, startPos=[0,0]):
-    self.angle=startangle
-    self.pos=startPos
-    self.time=0
+  def reset(self,startPos=[0,0],startangle=0,windSpeed=15,windAngle=0):
+    self.angle = startangle
+    self.angle_vel = 0
+    self.angle_acc = 0
+    self.pos = startPos
+    self.time = 0
+    self.vel=[0,0]
+    self.acc=[0,0]
+    self.setWind(windSpeed,windAngle)
     self.resetReward()
     self.getDirVectors()
+    self.generatePoints()
 
-    obs = np.array([self.windDirY,
-      self.windDirX,
-      self.targetDirY,
-      self.targetDirX,
-      self.nextDirY,
-      self.nextDirX], dtype=np.float32)
+    obs = self.getObs()
 
     return obs
 
   
   def addReward(self,preDist,dist):
-    r = preDist - dist + int(self.pointReached)*self.pointReward
-    self.reward+=r
-    self.tsReward=r
+    r = (preDist - dist)*10 + int(self.pointReached)*self.pointReward
+    self.reward += r
+    self.tsReward = r
 
     self.pointReached = False
   
   def addTime(self):
-    self.time+=1
+    self.time += 1
 
   def resetReward(self):
-    self.reward=0
+    self.reward = 0
 
   def step(self,action):
     preDist = self.getDist()
-
 
     # 0 = left, 1 = right
     self.turn(action)
     self.sail()
 
     self.update()
+    self.getTargetPoint(15)
     dist = self.getDist()
 
     self.getDirVectors()
@@ -255,12 +284,7 @@ class boat:
     truncated = self.time/self.fps >= self.timeLimit or self.targetIndex > len(self.points)
 
     # Observation
-    obs = np.array([self.windDirY,
-      self.windDirX,
-      self.targetDirY,
-      self.targetDirX,
-      self.nextDirY,
-      self.nextDirX], dtype=np.float32)
+    obs = self.getObs()
 
     
     reward = self.tsReward
@@ -295,18 +319,23 @@ class boat:
     self.points = points
 
   def getDirVectors(self):
-    self.windV=[-math.sin(math.radians(self.windAngle)),-math.cos(math.radians(self.windAngle))]
+    self.windV = [-math.sin(math.radians(self.windAngle)),-math.cos(math.radians(self.windAngle))]
 
 
     self.windDirY = dot(self.forwardV,self.windV)
     self.windDirX = dot(self.rigthV,self.windV)
 
-    targetV = [self.points[self.targetIndex][0]-self.pos[0],self.points[self.targetIndex][1]-self.pos[1]]
+    targetV = []
     nextV = []
-    if self.targetIndex + 1 >= len(self.points):
+    if self.targetIndex + 1 == len(self.points):
+      targetV = [self.points[self.targetIndex][0] - self.pos[0],self.points[self.targetIndex][1] - self.pos[1]]
+      nextV = targetV
+    elif self.targetIndex + 1 > len(self.points):
+      targetV = [0,0]
       nextV = targetV
     else:
-      nextV = [self.points[self.targetIndex+1][0]-self.pos[0],self.points[self.targetIndex+1][1]-self.pos[1]]
+      targetV = [self.points[self.targetIndex][0] - self.pos[0],self.points[self.targetIndex][1] - self.pos[1]]
+      nextV = [self.points[self.targetIndex+1][0] - self.pos[0],self.points[self.targetIndex+1][1] - self.pos[1]]
 
     self.targetDirY = dot(self.forwardV,targetV)
     self.targetDirX = dot(self.rigthV,targetV)
@@ -314,7 +343,15 @@ class boat:
     self.nextDirX = dot(self.rigthV,nextV)
     
 
+  def getObs(self):
 
+    obs = np.array([self.forwardSpeed, self.sidewaysSpeed,
+      self.windDirY, self.windDirX,
+      self.angle_vel,
+      self.targetDirY,self.targetDirX,
+      self.nextDirY,self.nextDirX], dtype=np.float32)
+
+    return obs
   
 
 
