@@ -64,13 +64,16 @@ speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.
 
 
 env=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
-env.setTimeLimit(60) 
-env.setFPS(30)
+env.setTimeLimit(30) 
+env.setFPS(15)
 env.setWindowSize(window_size)
 env.setsSailData(wind_angles,speeds)
 
+env.setPointsSettings(180,270,90,5)
+env.generatePoints()
+
 env.setMaxAngleVel(150)
-env.setTurnStrength(10)
+env.setTurnStrength(20)
 env.setSidewaysGrip(10)
 env.setSpeedScala(2)
 env.setSailAccStrength(0.75)
@@ -160,15 +163,15 @@ class DQN(nn.Module):
 
   def __init__(self, n_observations, n_actions):
     super(DQN, self).__init__()
-    self.layer1 = nn.Linear(n_observations, 64)
-    self.layer2 = nn.Linear(64, 64)
-    self.layer3 = nn.Linear(64, n_actions)
+    self.layer1 = nn.Linear(n_observations, 128)
+    self.layer2 = nn.Linear(128, 128)
+    self.layer3 = nn.Linear(128, n_actions)
 
   # Called with either one element to determine next action, or a batch
   # during optimization. Returns tensor([[left0exp,right0exp]...]).
   def forward(self, x):
-    x = F.tanh(self.layer1(x))
-    x = F.tanh(self.layer2(x))
+    x = F.relu(self.layer1(x))
+    x = F.relu(self.layer2(x))
     return self.layer3(x)
   
 
@@ -197,19 +200,20 @@ class DQN(nn.Module):
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
 
-BATCH_SIZE = 128
-GAMMA = 0.99
-EPS_START = 0.9
-EPS_END = 0.01
-EPS_DECAY = 80000
-TAU = 0.005
-LR = 3e-4
+
+BATCH_SIZE = 512
+GAMMA = 0.997
+EPS_START = 1.0
+EPS_END   = 0.05
+EPS_DECAY = 120_000
+TAU = 0.002
+LR = 1e-4
 
 
 # Get number of actions
 n_actions = 3
 # Get the number of state observations
-state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),15,r.randrange(0,359))
+state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),10,r.randrange(0,359))
 n_observations = len(state)
 
 policy_net = DQN(n_observations, n_actions).to(device)
@@ -217,7 +221,7 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(200000)
+memory = ReplayMemory(50000)
 
 
 steps_done = 0
@@ -253,8 +257,8 @@ def plot_durations(show_result=False):
   plt.subplot(2, 1, 1)  # 2 rows, 1 col, first subplot
   plt.title('Training Data')
   plt.xlabel('')
-  plt.ylabel('Total Duration')
-  plt.plot(durations_t.numpy())
+  plt.ylabel('Duration')
+  plt.plot(durations_t.numpy(),label="Total Duration")
 
   # Take 100 episode averages and plot them too
   if len(durations_t) >= 100:
@@ -356,9 +360,9 @@ def optimize_model():
   # results if convergence is not observed.
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-  num_episodes = 1000
+  num_episodes = 8000
 else:
-  num_episodes = 600
+  num_episodes = 4000
 
 for i_episode in range(num_episodes):
   # Initialize the environment and get its state

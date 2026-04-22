@@ -26,7 +26,7 @@ AI_boat=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
 AI_boat.setColor([200,200,200])
 AI_boat.setSize(65)
 AI_boat.setImg(ai_boat_img)
-AI_boat.setFPS(70)
+AI_boat.setFPS(100)
 
 wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,160,170,180]
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
@@ -38,10 +38,11 @@ run=True
 
 font = pg.font.SysFont('mono', 20,True,False)
 
-AI_boat.generatePoints(90,10,180)
+AI_boat.setPointsSettings(180,270,90,5)
+AI_boat.generatePoints()
 
-turnStrength = 10
-maxTurnVel = 150
+turnStrength = 20
+maxTurnVel = 200
 
 AI_boat.setMaxAngleVel(maxTurnVel)
 AI_boat.setTurnStrength(turnStrength)
@@ -56,7 +57,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-n_observations = 9   # IMPORTANT: must match training
+n_observations = AI_boat.getObs().size
 n_actions = 3
 
 # if GPU is to be used
@@ -70,19 +71,20 @@ class DQN(nn.Module):
 
   def __init__(self, n_observations, n_actions):
     super(DQN, self).__init__()
-    self.layer1 = nn.Linear(n_observations, 64)
-    self.layer2 = nn.Linear(64, 64)
-    self.layer3 = nn.Linear(64, n_actions)
+    self.layer1 = nn.Linear(n_observations, 128)
+    self.layer2 = nn.Linear(128, 128)
+    self.layer3 = nn.Linear(128, n_actions)
 
   # Called with either one element to determine next action, or a batch
   # during optimization. Returns tensor([[left0exp,right0exp]...]).
   def forward(self, x):
-    x = F.tanh(self.layer1(x))
-    x = F.tanh(self.layer2(x))
+    x = F.relu(self.layer1(x))
+    x = F.relu(self.layer2(x))
     return self.layer3(x)
+  
 
 policy_net = DQN(n_observations, n_actions).to(device)
-policy_net.load_state_dict(torch.load("SailBoat_AI1.pth", map_location=device))
+policy_net.load_state_dict(torch.load("SailBoat_AI.pth", map_location=device))
 
 
 while run:
@@ -129,7 +131,7 @@ while run:
 
   AI_boat.show(90,screen)
   if AI_boat.getTargetPoint(20,False):
-    AI_boat.generatePoints(90,10,180)
+    AI_boat.generatePoints()
   AI_boat.drawPoints(screen,font)
 
   pg.display.update()

@@ -7,21 +7,27 @@ import random as r
 def lengthV(v=[0,1]):
   return math.sqrt(v[0]**2+v[1]**2)
 
-def dot(v1=[0,1],v2=[1,0]):
-    v1_length = lengthV(v1)
-    v2_length = lengthV(v2)
-    
-    if v1_length != 0:
-      v1_norm = [v1[0]/v1_length,v1[1]/v1_length]
-    else:
-      v1_norm = v1
+def dot1(v1, v2, eps=1e-6):
+  v1_length = lengthV(v1)
+  v2_length = lengthV(v2)
 
-    if v2_length != 0:
-      v2_norm = [v2[0]/v2_length,v2[1]/v2_length]
-    else:
-      v2_norm = v2
+  if v1_length < eps or v2_length < eps:
+    return 0.0  # direction undefined → neutral signal
 
-    return v1_norm[0]*v2_norm[0]+v1_norm[1]*v2_norm[1]
+  v1_norm = [v1[0]/v1_length, v1[1]/v1_length]
+  v2_norm = [v2[0]/v2_length, v2[1]/v2_length]
+
+  return v1_norm[0]*v2_norm[0] + v1_norm[1]*v2_norm[1]
+
+def dot2(v1, v2, eps=1e-6):
+  v1_length = lengthV(v1)
+  v2_length = lengthV(v2)
+
+  if v1_length < eps or v2_length < eps:
+    return 0.0  # direction undefined → neutral signal
+
+  return v1[0]*v2[0] + v1[1]*v2[1]
+
 
 class boat:
   def __init__(self,pos,angle):
@@ -63,7 +69,7 @@ class boat:
     self.nextV = []
 
     self.forwardV = [math.cos(self.angle),math.sin(self.angle)]
-    self.rigthV = [math.sin(self.angle),math.cos(self.angle)]
+    self.rightV = [math.sin(self.angle),math.cos(self.angle)]
     self.windV = []
 
     self.forwardSpeed = 0
@@ -87,6 +93,11 @@ class boat:
 
     self.pointReward = 1
     self.pointReached = False
+
+    self.minDist = 90
+    self.maxDist = 180
+    self.borderOffset = 90
+    self.num = 10
     
   def setsSailData(self,angles,speeds):
     self.wind_angles = angles
@@ -135,6 +146,12 @@ class boat:
   def setWindowSize(self,window_size):
     self.windowSize = window_size
 
+  def setPointsSettings(self,minDist,maxDist,borderOffset=90,num=10):
+    self.minDist = minDist
+    self.maxDist = maxDist
+    self.borderOffset = borderOffset
+    self.num = num
+
   def show(self,angleOffset,screen):
     boat_img = pg.transform.rotozoom(self.boat, (-self.angle+angleOffset), self.scale_factor)
     self.boat_rect = boat_img.get_rect()
@@ -181,7 +198,9 @@ class boat:
     # rotation
     self.angle_vel *= 0.99
     self.angle_vel += self.angle_acc * self.dt
+    self.angle_vel = max(-self.maxAngleVel, min(self.angle_vel, self.maxAngleVel))
     self.angle += self.angle_vel * self.dt
+    self.angle = self.angle % 360
 
     fx = math.sin(math.radians(self.angle))
     fy = -math.cos(math.radians(self.angle))
@@ -207,22 +226,29 @@ class boat:
     self.acc = [0,0]
 
     self.forwardV=[math.sin(math.radians(self.angle)),-math.cos(math.radians(self.angle))]
-    self.rigthV=[math.cos(math.radians(self.angle)),-math.sin(math.radians(self.angle))]
+    self.rightV=[math.cos(math.radians(self.angle)),-math.sin(math.radians(self.angle))]
 
-  def generatePoints(self,borderOffset=90,num=10,minDist=180):
+  def generatePoints(self):
     self.targetIndex=0
-    self.points=[[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]]
-    for x in range(num-1):
-      toClose=True
-      randP=[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]
+    self.points=[[r.randrange(0+self.borderOffset,self.windowSize[0]-self.borderOffset),r.randrange(0+self.borderOffset,self.windowSize[1]-self.borderOffset)]]
+    for x in range(self.num-1):
+      outOfRange=True
+      randR=r.randrange(0,359)
+      randL=r.randrange(self.minDist,self.maxDist)
+      randP=[self.points[x][0]+math.cos(math.radians(randR))*randL,self.points[x][1]+math.sin(math.radians(randR))*randL]
 
-      while toClose:
-        toClose=False
-        randP=[r.randrange(0+borderOffset,self.windowSize[0]-borderOffset),r.randrange(0+borderOffset,self.windowSize[1]-borderOffset)]
-        for d in range(len(self.points)):
-          if math.sqrt((self.points[d][0]-randP[0])**2+(self.points[d][1]-randP[1])**2)<minDist:
-            toClose=True
-            break
+      while outOfRange:
+        outOfRange=False
+        randR=r.randrange(0,359)
+        randL=r.randrange(self.minDist,self.maxDist)
+        randP=[self.points[x][0]+math.cos(math.radians(randR))*randL,self.points[x][1]+math.sin(math.radians(randR))*randL]
+        
+        inBorderX = randP[0] > 0+self.borderOffset and randP[0] < self.windowSize[0]-self.borderOffset
+        inBorderY = randP[1] > 0+self.borderOffset and randP[1] < self.windowSize[1]-self.borderOffset
+
+        if not inBorderX or not inBorderY:
+          outOfRange=True
+        
 
       self.points.append(randP.copy())
     
@@ -244,16 +270,34 @@ class boat:
     self.acc=[0,0]
     self.setWind(windSpeed,windAngle)
     self.resetReward()
-    self.getDirVectors()
     self.generatePoints()
+    self.getDirVectors()
 
     obs = self.getObs()
 
     return obs
 
   
-  def addReward(self,preDist,dist):
-    r = (preDist - dist)*10 + int(self.pointReached)*self.pointReward
+  def addReward(self,preDist,dist,terminated,truncated):
+    r=0
+    # main sailing reward
+    r += self.targetDirY * self.forwardSpeed * 0.4
+
+    # small guidance
+    r += max(0,self.targetDirY)*0.2 #- abs(self.sidewaysSpeed*0.1) - abs(self.angle_vel) * 0.01
+    if self.pointReached:
+      r += self.pointReward
+    
+    
+    if terminated:
+      r-= self.timeLimit*self.fps
+      '''
+      if self.targetIndex < self.num:
+        r-= 200'''
+    
+    if truncated and not self.targetIndex < self.num:
+      r+=self.targetIndex*100
+
     self.reward += r
     self.tsReward = r
 
@@ -278,10 +322,11 @@ class boat:
 
     self.getDirVectors()
     self.addTime()
-    self.addReward(preDist,dist)
 
-    terminated = (-self.limit[0]/2 > self.pos[0] or self.limit[0]/2*3 < self.pos[0] or -self.limit[1]/2 > self.pos[1] or self.limit[1]/2*3 < self.pos[1])
-    truncated = self.time/self.fps >= self.timeLimit or self.targetIndex > len(self.points)
+    terminated = (-90 > self.pos[0] or self.limit[0]+90 < self.pos[0] or -90 > self.pos[1] or self.limit[1]+90 < self.pos[1])
+    truncated = self.time/self.fps >= self.timeLimit
+
+    self.addReward(preDist,dist,terminated,truncated)
 
     # Observation
     obs = self.getObs()
@@ -293,7 +338,10 @@ class boat:
     return obs, reward, terminated, truncated, info
 
   def getDist(self):
-    dist = math.sqrt((self.points[self.targetIndex][0]-self.pos[0])**2+(self.points[self.targetIndex][1]-self.pos[1])**2)
+    if self.targetIndex == len(self.points):
+      dist = math.sqrt((self.points[self.targetIndex-1][0]-self.pos[0])**2+(self.points[self.targetIndex-1][1]-self.pos[1])**2)
+    else:
+      dist = math.sqrt((self.points[self.targetIndex][0]-self.pos[0])**2+(self.points[self.targetIndex][1]-self.pos[1])**2)
     return dist
 
   def getTargetPoint(self,minDist,generateNewPoints=False):
@@ -319,14 +367,24 @@ class boat:
     self.points = points
 
   def getDirVectors(self):
+
+    fx = math.sin(math.radians(self.angle))
+    fy = -math.cos(math.radians(self.angle))
+    rx = math.cos(math.radians(self.angle))
+    ry = -math.sin(math.radians(self.angle))
+
+    self.forwardV = [fx, fy]
+    self.rightV   = [rx, ry]
+
     self.windV = [-math.sin(math.radians(self.windAngle)),-math.cos(math.radians(self.windAngle))]
 
 
-    self.windDirY = dot(self.forwardV,self.windV)
-    self.windDirX = dot(self.rigthV,self.windV)
+    self.windDirY = dot1(self.forwardV,self.windV)
+    self.windDirX = dot1(self.rightV,self.windV)
 
     targetV = []
     nextV = []
+    '''
     if self.targetIndex + 1 == len(self.points):
       targetV = [self.points[self.targetIndex][0] - self.pos[0],self.points[self.targetIndex][1] - self.pos[1]]
       nextV = targetV
@@ -336,20 +394,23 @@ class boat:
     else:
       targetV = [self.points[self.targetIndex][0] - self.pos[0],self.points[self.targetIndex][1] - self.pos[1]]
       nextV = [self.points[self.targetIndex+1][0] - self.pos[0],self.points[self.targetIndex+1][1] - self.pos[1]]
+  '''
+    targetV = [self.points[self.targetIndex%(len(self.points))][0] - self.pos[0],self.points[self.targetIndex%(len(self.points))][1] - self.pos[1]]
+    nextV = [self.points[(self.targetIndex+1)%(len(self.points))][0] - self.pos[0],self.points[(self.targetIndex+1)%(len(self.points))][1] - self.pos[1]]
 
-    self.targetDirY = dot(self.forwardV,targetV)
-    self.targetDirX = dot(self.rigthV,targetV)
-    self.nextDirY = dot(self.forwardV,nextV)
-    self.nextDirX = dot(self.rigthV,nextV)
+    self.targetDirY = dot1(self.forwardV,targetV)
+    self.targetDirX = dot1(self.rightV,targetV)
+    self.nextDirY = dot1(self.forwardV,nextV)
+    self.nextDirX = dot1(self.rightV,nextV)
     
 
   def getObs(self):
+    rel_wind_angle = self.rel_angle(self.windAngle, self.angle) / 180.0
 
-    obs = np.array([self.forwardSpeed, self.sidewaysSpeed,
+    obs = np.array([self.forwardSpeed,self.sidewaysSpeed,
       self.windDirY, self.windDirX,
-      self.angle_vel,
-      self.targetDirY,self.targetDirX,
-      self.nextDirY,self.nextDirX], dtype=np.float32)
+      rel_wind_angle,self.getDist()/ self.maxDist,
+      self.targetDirY,self.targetDirX], dtype=np.float32)
 
     return obs
   

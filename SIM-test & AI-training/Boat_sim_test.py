@@ -41,10 +41,11 @@ run=True
 
 font = pg.font.SysFont('mono', 20,True,False)
 
-player_boat.generatePoints(90,10,180)
+player_boat.setPointsSettings(180,270,90,5)
+player_boat.generatePoints()
 
 turnStrength = 10
-maxTurnVel = 150
+maxTurnVel = 200
 
 player_boat.setMaxAngleVel(maxTurnVel)
 player_boat.setTurnStrength(turnStrength)
@@ -86,7 +87,7 @@ while run:
 
   player_boat.show(90,screen)
   if player_boat.getTargetPoint(20,False):
-    player_boat.generatePoints(90,10,180)
+    player_boat.generatePoints()
   player_boat.drawPoints(screen,font)
 
 
