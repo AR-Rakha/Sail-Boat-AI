@@ -26,7 +26,7 @@ AI_boat=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
 AI_boat.setColor([200,200,200])
 AI_boat.setSize(65)
 AI_boat.setImg(ai_boat_img)
-AI_boat.setFPS(100)
+AI_boat.setFPS(30)
 
 wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,160,170,180]
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
@@ -42,7 +42,7 @@ AI_boat.setPointsSettings(180,270,90,5)
 AI_boat.generatePoints()
 
 turnStrength = 20
-maxTurnVel = 200
+maxTurnVel = 150
 
 AI_boat.setMaxAngleVel(maxTurnVel)
 AI_boat.setTurnStrength(turnStrength)

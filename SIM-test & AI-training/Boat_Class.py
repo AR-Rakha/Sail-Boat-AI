@@ -280,11 +280,11 @@ class boat:
   
   def addReward(self,preDist,dist,terminated,truncated):
     r=0
-    # main sailing reward
-    r += self.targetDirY * self.forwardSpeed * 0.4
 
-    # small guidance
-    r += max(0,self.targetDirY)*0.2 #- abs(self.sidewaysSpeed*0.1) - abs(self.angle_vel) * 0.01
+    r += (-abs(self.targetDirX)+1)*0.2 + self.targetDirY*0.05
+
+    r -= 0.01
+
     if self.pointReached:
       r += self.pointReward
     
@@ -295,8 +295,8 @@ class boat:
       if self.targetIndex < self.num:
         r-= 200'''
     
-    if truncated and not self.targetIndex < self.num:
-      r+=self.targetIndex*100
+    '''if truncated and not self.targetIndex < self.num:
+      r+=self.targetIndex*100'''
 
     self.reward += r
     self.tsReward = r
@@ -405,12 +405,12 @@ class boat:
     
 
   def getObs(self):
-    rel_wind_angle = self.rel_angle(self.windAngle, self.angle) / 180.0
+    #rel_wind_angle = self.rel_angle(self.windAngle, self.angle) / 180.0
 
-    obs = np.array([self.forwardSpeed,self.sidewaysSpeed,
+    obs = np.array([
       self.windDirY, self.windDirX,
-      rel_wind_angle,self.getDist()/ self.maxDist,
-      self.targetDirY,self.targetDirX], dtype=np.float32)
+      self.targetDirY,self.targetDirX,
+      self.nextDirY,self.nextDirX], dtype=np.float32)
 
     return obs
   

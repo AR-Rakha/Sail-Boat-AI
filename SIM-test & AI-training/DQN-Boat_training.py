@@ -64,7 +64,7 @@ speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.
 
 
 env=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
-env.setTimeLimit(30) 
+env.setTimeLimit(60) 
 env.setFPS(15)
 env.setWindowSize(window_size)
 env.setsSailData(wind_angles,speeds)
@@ -201,13 +201,13 @@ class DQN(nn.Module):
 # LR is the learning rate of the ``AdamW`` optimizer
 
 
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 GAMMA = 0.997
 EPS_START = 1.0
 EPS_END   = 0.05
 EPS_DECAY = 120_000
 TAU = 0.002
-LR = 1e-4
+LR = 2e-4
 
 
 # Get number of actions
@@ -221,7 +221,7 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(50000)
+memory = ReplayMemory(400000)
 
 
 steps_done = 0
@@ -362,7 +362,7 @@ def optimize_model():
 if torch.cuda.is_available() or torch.backends.mps.is_available():
   num_episodes = 8000
 else:
-  num_episodes = 4000
+  num_episodes = 6000
 
 for i_episode in range(num_episodes):
   # Initialize the environment and get its state
@@ -404,12 +404,13 @@ for i_episode in range(num_episodes):
       plot_durations()
       break
 
+torch.save(policy_net.state_dict(), "SailBoat_AI.pth")
+
 print('Complete')
 plot_durations(show_result=True)
 plt.ioff()
 plt.show()
 
-torch.save(policy_net.state_dict(), "SailBoat_AI.pth")
 
 # Here is the diagram that illustrates the overall resulting data flow.
 
