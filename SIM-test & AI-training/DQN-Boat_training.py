@@ -63,16 +63,27 @@ wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
 
 
-env=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
-env.setTimeLimit(60) 
+env=boat([window_size[0]/2,window_size[1]/2],r.randrange(25,35))
+env.setTimeLimit(45) 
 env.setFPS(15)
 env.setWindowSize(window_size)
 env.setsSailData(wind_angles,speeds)
 
 env.setPointsSettings(180,270,90,5)
-env.generatePoints()
 
-env.setMaxAngleVel(150)
+track =[[8,4.5],[9.4,2.1],[12.6,2.1],
+        [13.5,4.3],[11,5.5],[13.5,6.6],
+        [9.6,7],[5.3,4.4],[3.1,4.8],
+        [5.2,6.1],[2.3,6.9],[2.1,2.2]]
+
+
+for i in range(len(track)):
+  track[i][0]*=cell_size
+  track[i][1]*=cell_size
+
+env.setPoints(track)
+
+env.setMaxAngleVel(100)
 env.setTurnStrength(20)
 env.setSidewaysGrip(10)
 env.setSpeedScala(2)
@@ -202,18 +213,18 @@ class DQN(nn.Module):
 
 
 BATCH_SIZE = 256
-GAMMA = 0.997
+GAMMA = 0.92
 EPS_START = 1.0
 EPS_END   = 0.05
 EPS_DECAY = 120_000
 TAU = 0.002
-LR = 2e-4
+LR = 1e-4
 
 
 # Get number of actions
 n_actions = 3
 # Get the number of state observations
-state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),10,r.randrange(0,359))
+state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(25,35),15,270)
 n_observations = len(state)
 
 policy_net = DQN(n_observations, n_actions).to(device)
@@ -360,13 +371,13 @@ def optimize_model():
   # results if convergence is not observed.
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-  num_episodes = 8000
-else:
   num_episodes = 6000
+else:
+  num_episodes = 2500
 
 for i_episode in range(num_episodes):
   # Initialize the environment and get its state
-  state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),15,r.randrange(0,359))
+  state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(10,50),15,270)
   total_reward = 0
   state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
   for t in count():

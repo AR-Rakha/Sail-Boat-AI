@@ -26,7 +26,7 @@ AI_boat=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,359))
 AI_boat.setColor([200,200,200])
 AI_boat.setSize(65)
 AI_boat.setImg(ai_boat_img)
-AI_boat.setFPS(30)
+AI_boat.setFPS(100)
 
 wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,160,170,180]
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
@@ -39,7 +39,15 @@ run=True
 font = pg.font.SysFont('mono', 20,True,False)
 
 AI_boat.setPointsSettings(180,270,90,5)
-AI_boat.generatePoints()
+track =[[8,4.5],[9.4,2.1],[12.6,2.1],
+        [13.5,4.3],[11,5.5],[13.5,6.6],
+        [6.8,7],[5.3,4.4],[3.1,4.8],
+        [5.2,6.1],[2.3,6.9],[2.1,2.2]]
+
+for i in range(len(track)):
+  track[i][0]*=cell_size
+  track[i][1]*=cell_size
+AI_boat.setPoints(track)
 
 turnStrength = 20
 maxTurnVel = 150
@@ -97,7 +105,7 @@ while run:
     run = False
 
   if key[pg.K_r]:
-    AI_boat.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),r.randrange(10,20,5),r.randrange(0,359))
+    AI_boat.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),r.randrange(10,20,5),270)
 
   AI_boat.getDirVectors()
   state_np = AI_boat.getObs()
@@ -130,8 +138,8 @@ while run:
       run = False
 
   AI_boat.show(90,screen)
-  if AI_boat.getTargetPoint(20,False):
-    AI_boat.generatePoints()
+  AI_boat.getTargetPoint(20,True)
+  
   AI_boat.drawPoints(screen,font)
 
   pg.display.update()

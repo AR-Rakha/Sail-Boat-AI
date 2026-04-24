@@ -80,6 +80,7 @@ class boat:
     self.targetDirX = 0
     self.nextDirY = 0
     self.nextDirX = 0 
+    self.speedTowardTarget = 0
 
 
     self.fps = 400
@@ -261,6 +262,7 @@ class boat:
       self.resetReward()
 
   def reset(self,startPos=[0,0],startangle=0,windSpeed=15,windAngle=0):
+    self.targetIndex=0
     self.angle = startangle
     self.angle_vel = 0
     self.angle_acc = 0
@@ -270,7 +272,6 @@ class boat:
     self.acc=[0,0]
     self.setWind(windSpeed,windAngle)
     self.resetReward()
-    self.generatePoints()
     self.getDirVectors()
 
     obs = self.getObs()
@@ -278,25 +279,23 @@ class boat:
     return obs
 
   
-  def addReward(self,preDist,dist,terminated,truncated):
+  def addReward(self,preDist,dist,terminated):
     r=0
 
-    r += (-abs(self.targetDirX)+1)*0.2 + self.targetDirY*0.05
+    progress = preDist-dist
 
+    #r += (-abs(self.targetDirX)+1)*0.2 + self.targetDirY*0.05
+    #r -= abs(self.angle_vel)*0.001
+    r += progress*0.2
+    #r += self.speedTowardTarget * 0.5   
     r -= 0.01
 
     if self.pointReached:
       r += self.pointReward
-    
-    
     if terminated:
-      r-= self.timeLimit*self.fps
-      '''
-      if self.targetIndex < self.num:
-        r-= 200'''
-    
-    '''if truncated and not self.targetIndex < self.num:
-      r+=self.targetIndex*100'''
+      r -= 50
+      
+      #r-= self.pointReward*(self.targetIndex-1)
 
     self.reward += r
     self.tsReward = r
@@ -324,9 +323,9 @@ class boat:
     self.addTime()
 
     terminated = (-90 > self.pos[0] or self.limit[0]+90 < self.pos[0] or -90 > self.pos[1] or self.limit[1]+90 < self.pos[1])
-    truncated = self.time/self.fps >= self.timeLimit
+    truncated = self.time/self.fps >= self.timeLimit #Aor self.targetIndex > len(self.points)-1
 
-    self.addReward(preDist,dist,terminated,truncated)
+    self.addReward(preDist,dist,terminated)
 
     # Observation
     obs = self.getObs()
@@ -338,17 +337,18 @@ class boat:
     return obs, reward, terminated, truncated, info
 
   def getDist(self):
-    if self.targetIndex == len(self.points):
+    '''if self.targetIndex == len(self.points):
       dist = math.sqrt((self.points[self.targetIndex-1][0]-self.pos[0])**2+(self.points[self.targetIndex-1][1]-self.pos[1])**2)
     else:
-      dist = math.sqrt((self.points[self.targetIndex][0]-self.pos[0])**2+(self.points[self.targetIndex][1]-self.pos[1])**2)
+      dist = math.sqrt((self.points[self.targetIndex][0]-self.pos[0])**2+(self.points[self.targetIndex][1]-self.pos[1])**2)'''
+    
+    dist = math.sqrt((self.points[self.targetIndex%(len(self.points))][0]-self.pos[0])**2+(self.points[self.targetIndex%(len(self.points))][1]-self.pos[1])**2)
     return dist
 
-  def getTargetPoint(self,minDist,generateNewPoints=False):
-    if self.targetIndex >= len(self.points) and not generateNewPoints:
-      return False
-    elif self.targetIndex >= len(self.points) and generateNewPoints:
-      return True
+  def getTargetPoint(self,minDist,resetPoints=False):
+    
+    if self.targetIndex >= len(self.points) and resetPoints:
+      self.targetIndex=0
 
     if self.getDist() < minDist:
       self.targetIndex += 1
@@ -402,15 +402,21 @@ class boat:
     self.targetDirX = dot1(self.rightV,targetV)
     self.nextDirY = dot1(self.forwardV,nextV)
     self.nextDirX = dot1(self.rightV,nextV)
+
+    self.speedTowardTarget = self.targetDirY*self.forwardSpeed
     
 
   def getObs(self):
-    #rel_wind_angle = self.rel_angle(self.windAngle, self.angle) / 180.0
+
+    dist = self.getDist()
+    maxDist = math.sqrt(self.windowSize[0]**2 + self.windowSize[1]**2)
+    distNorm = dist / maxDist
 
     obs = np.array([
       self.windDirY, self.windDirX,
-      self.targetDirY,self.targetDirX,
-      self.nextDirY,self.nextDirX], dtype=np.float32)
+      self.targetDirY,self.targetDirX], dtype=np.float32)
+
+    '''self.nextDirY,self.nextDirX,distNorm'''
 
     return obs
   
