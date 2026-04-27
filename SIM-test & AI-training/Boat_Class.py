@@ -76,10 +76,17 @@ class boat:
     self.sidewaysSpeed = 0
     self.windDirX = 0
     self.windDirY = 0
+
     self.targetDirY = 0
     self.targetDirX = 0
+    self.targetDirY_n = 0
+    self.targetDirX_n = 0
+
     self.nextDirY = 0
-    self.nextDirX = 0 
+    self.nextDirX = 0
+    self.nextDirY_n = 0
+    self.nextDirX_n = 0 
+
     self.speedTowardTarget = 0
 
 
@@ -231,7 +238,7 @@ class boat:
 
   def generatePoints(self):
     self.targetIndex=0
-    self.points=[[r.randrange(0+self.borderOffset,self.windowSize[0]-self.borderOffset),r.randrange(0+self.borderOffset,self.windowSize[1]-self.borderOffset)]]
+    self.points=[[self.windowSize[0]/2,self.windowSize[1]/2]]
     for x in range(self.num-1):
       outOfRange=True
       randR=r.randrange(0,359)
@@ -273,6 +280,7 @@ class boat:
     self.setWind(windSpeed,windAngle)
     self.resetReward()
     self.getDirVectors()
+    self.generatePoints()
 
     obs = self.getObs()
 
@@ -284,18 +292,17 @@ class boat:
 
     progress = preDist-dist
 
-    #r += (-abs(self.targetDirX)+1)*0.2 + self.targetDirY*0.05
     #r -= abs(self.angle_vel)*0.001
-    r += progress*0.2
+    r += progress*0.1
     #r += self.speedTowardTarget * 0.5   
     r -= 0.01
 
     if self.pointReached:
       r += self.pointReward
-    if terminated:
-      r -= 50
+
+    '''if terminated:
+      r -= 50'''
       
-      #r-= self.pointReward*(self.targetIndex-1)
 
     self.reward += r
     self.tsReward = r
@@ -311,7 +318,7 @@ class boat:
   def step(self,action):
     preDist = self.getDist()
 
-    # 0 = left, 1 = right
+    # 0 = left, 1 = right, 2 = none
     self.turn(action)
     self.sail()
 
@@ -323,7 +330,7 @@ class boat:
     self.addTime()
 
     terminated = (-90 > self.pos[0] or self.limit[0]+90 < self.pos[0] or -90 > self.pos[1] or self.limit[1]+90 < self.pos[1])
-    truncated = self.time/self.fps >= self.timeLimit #Aor self.targetIndex > len(self.points)-1
+    truncated = self.time/self.fps >= self.timeLimit #or self.targetIndex > len(self.points)-1
 
     self.addReward(preDist,dist,terminated)
 
@@ -349,15 +356,16 @@ class boat:
     
     if self.targetIndex >= len(self.points) and resetPoints:
       self.targetIndex=0
+      self.generatePoints()
 
     if self.getDist() < minDist:
       self.targetIndex += 1
       self.pointReached = True
     
-  def drawPoints(self,screen,font):
+  def drawPoints(self,screen,font,fontColor=[255,255,255],radius=15,color=[0,0,0]):
     for x in range(len(self.points)-self.targetIndex):
-      pg.draw.circle(screen, (0,0,0), (self.points[x+self.targetIndex][0],self.points[x+self.targetIndex][1]), 15)
-      textImg = font.render(str(x+self.targetIndex+1), True, (255,255,255))
+      pg.draw.circle(screen, color, (self.points[x+self.targetIndex][0],self.points[x+self.targetIndex][1]), radius)
+      textImg = font.render(str(x+self.targetIndex+1), True, fontColor)
       text_width, text_height = font.size(str(x+self.targetIndex+1)) #txt being whatever str you're rendering
       screen.blit(textImg, (self.points[x+self.targetIndex][0]-text_width/2,self.points[x+self.targetIndex][1]-text_height/2))
 
@@ -398,10 +406,16 @@ class boat:
     targetV = [self.points[self.targetIndex%(len(self.points))][0] - self.pos[0],self.points[self.targetIndex%(len(self.points))][1] - self.pos[1]]
     nextV = [self.points[(self.targetIndex+1)%(len(self.points))][0] - self.pos[0],self.points[(self.targetIndex+1)%(len(self.points))][1] - self.pos[1]]
 
-    self.targetDirY = dot1(self.forwardV,targetV)
-    self.targetDirX = dot1(self.rightV,targetV)
-    self.nextDirY = dot1(self.forwardV,nextV)
-    self.nextDirX = dot1(self.rightV,nextV)
+
+    self.targetDirY = dot2(self.forwardV,targetV)
+    self.targetDirX = dot2(self.rightV,targetV)
+    self.targetDirY_n = dot1(self.forwardV,targetV)
+    self.targetDirX_n = dot1(self.rightV,targetV)
+
+    self.nextDirY = dot2(self.forwardV,nextV)
+    self.nextDirX = dot2(self.rightV,nextV)
+    self.nextDirY_n = dot1(self.forwardV,nextV)
+    self.nextDirX_n = dot1(self.rightV,nextV)
 
     self.speedTowardTarget = self.targetDirY*self.forwardSpeed
     
@@ -414,7 +428,13 @@ class boat:
 
     obs = np.array([
       self.windDirY, self.windDirX,
-      self.targetDirY,self.targetDirX], dtype=np.float32)
+      self.targetDirY,self.targetDirX,
+      self.targetDirY_n,self.targetDirX_n,
+      self.nextDirY,self.nextDirX,
+      self.nextDirY_n,self.nextDirX_n,
+      self.speedTowardTarget,
+      self.angle_vel,
+      distNorm], dtype=np.float32)
 
     '''self.nextDirY,self.nextDirX,distNorm'''
 

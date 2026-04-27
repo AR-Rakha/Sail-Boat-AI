@@ -63,13 +63,14 @@ wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
 
 
-env=boat([window_size[0]/2,window_size[1]/2],r.randrange(25,35))
+env=boat([window_size[0]/2,window_size[1]/2],r.randrange(0,259))
 env.setTimeLimit(45) 
-env.setFPS(15)
+env.setFPS(20)
 env.setWindowSize(window_size)
 env.setsSailData(wind_angles,speeds)
 
-env.setPointsSettings(180,270,90,5)
+env.setPointsSettings(180,270,120,6)
+env.generatePoints()
 
 track =[[8,4.5],[9.4,2.1],[12.6,2.1],
         [13.5,4.3],[11,5.5],[13.5,6.6],
@@ -81,11 +82,11 @@ for i in range(len(track)):
   track[i][0]*=cell_size
   track[i][1]*=cell_size
 
-env.setPoints(track)
 
-env.setMaxAngleVel(100)
-env.setTurnStrength(20)
-env.setSidewaysGrip(10)
+
+env.setMaxAngleVel(175)
+env.setTurnStrength(10)
+env.setSidewaysGrip(5)
 env.setSpeedScala(2)
 env.setSailAccStrength(0.75)
 env.setPointReward(100)
@@ -212,19 +213,19 @@ class DQN(nn.Module):
 # LR is the learning rate of the ``AdamW`` optimizer
 
 
-BATCH_SIZE = 256
-GAMMA = 0.92
+BATCH_SIZE = 512
+GAMMA = 0.98
 EPS_START = 1.0
 EPS_END   = 0.05
-EPS_DECAY = 120_000
+EPS_DECAY = 120000
 TAU = 0.002
-LR = 1e-4
+LR = 2e-4
 
 
 # Get number of actions
 n_actions = 3
 # Get the number of state observations
-state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(25,35),15,270)
+state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),15,270)
 n_observations = len(state)
 
 policy_net = DQN(n_observations, n_actions).to(device)
@@ -232,7 +233,7 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(400000)
+memory = ReplayMemory(90000)
 
 
 steps_done = 0
@@ -371,13 +372,13 @@ def optimize_model():
   # results if convergence is not observed.
 
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-  num_episodes = 6000
+  num_episodes = 10000
 else:
-  num_episodes = 2500
+  num_episodes = 8000
 
 for i_episode in range(num_episodes):
   # Initialize the environment and get its state
-  state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(10,50),15,270)
+  state = env.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),15,270)
   total_reward = 0
   state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
   for t in count():

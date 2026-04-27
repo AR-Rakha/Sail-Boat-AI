@@ -49,8 +49,8 @@ for i in range(len(track)):
   track[i][1]*=cell_size
 AI_boat.setPoints(track)
 
-turnStrength = 20
-maxTurnVel = 150
+turnStrength = 10
+maxTurnVel = 175
 
 AI_boat.setMaxAngleVel(maxTurnVel)
 AI_boat.setTurnStrength(turnStrength)
@@ -59,7 +59,7 @@ AI_boat.setSpeedScala(2)
 AI_boat.setSailAccStrength(0.75)
 #AI_boat.setPointReward(10000)
 #AI_boat.setLimit(window_size)
-AI_boat.setWind(15,270)
+AI_boat.setWind(10,270)
 
 import torch
 import torch.nn as nn
@@ -92,7 +92,7 @@ class DQN(nn.Module):
   
 
 policy_net = DQN(n_observations, n_actions).to(device)
-policy_net.load_state_dict(torch.load("SailBoat_AI.pth", map_location=device))
+policy_net.load_state_dict(torch.load("SailBoat_AI_S.pth", map_location=device))
 
 
 while run:
@@ -105,7 +105,7 @@ while run:
     run = False
 
   if key[pg.K_r]:
-    AI_boat.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),r.randrange(10,20,5),270)
+    AI_boat.reset([window_size[0]/2,window_size[1]/2],r.randrange(0,359),r.randrange(10,20,5),r.randrange(0,359))
 
   AI_boat.getDirVectors()
   state_np = AI_boat.getObs()
@@ -138,9 +138,9 @@ while run:
       run = False
 
   AI_boat.show(90,screen)
-  AI_boat.getTargetPoint(20,True)
+  AI_boat.getTargetPoint(40,True)
   
-  AI_boat.drawPoints(screen,font)
+  AI_boat.drawPoints(screen,font,[150,150,150],30,[50,50,150])
 
   pg.display.update()
 

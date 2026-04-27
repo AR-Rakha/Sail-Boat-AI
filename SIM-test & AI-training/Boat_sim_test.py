@@ -29,7 +29,7 @@ player_boat=boat([window_size[0]/2,window_size[1]/2],r.randrange(20,40))
 player_boat.setColor([200,200,200])
 player_boat.setSize(65)
 player_boat.setImg(player_boat_img)
-player_boat.setFPS(100)
+player_boat.setFPS(300)
 
 wind_angles=[0,5,10,15,20,25,32,36,40,45,52,60,70,80,90,100,110,120,130,140,150,160,170,180]
 speeds=[0.0, 0.5, 1.1, 1.4, 1.9, 2.4, 3.7, 4.3, 4.8, 5.2, 5.8, 6.2, 6.4, 6.6, 6.8, 6.8, 6.7, 6.4, 5.8, 5.2, 4.6, 4.0, 3.6, 3.4]
@@ -41,7 +41,8 @@ run=True
 
 font = pg.font.SysFont('mono', 20,True,False)
 
-player_boat.setPointsSettings(180,270,90,5)
+player_boat.setPointsSettings(270,290,120,6)
+
 track =[[8,4.5],[9.4,2.1],[12.6,2.1],
         [13.5,4.3],[11,5.5],[13.5,6.6],
         [6.8,7],[5.3,4.4],[3.1,4.8],
@@ -51,13 +52,13 @@ for i in range(len(track)):
   track[i][0]*=cell_size
   track[i][1]*=cell_size
 
-player_boat.setPoints(track)
-turnStrength = 10
-maxTurnVel = 100
+player_boat.generatePoints()
+turnStrength = 5
+maxTurnVel = 175
 
 player_boat.setMaxAngleVel(maxTurnVel)
 player_boat.setTurnStrength(turnStrength)
-player_boat.setSidewaysGrip(10)
+player_boat.setSidewaysGrip(5)
 player_boat.setSpeedScala(2)
 player_boat.setSailAccStrength(0.75)
 player_boat.setPointReward(10000)
