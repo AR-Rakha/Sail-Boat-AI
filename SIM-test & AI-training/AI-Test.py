@@ -92,7 +92,7 @@ class DQN(nn.Module):
   
 
 policy_net = DQN(n_observations, n_actions).to(device)
-policy_net.load_state_dict(torch.load("SailBoat_AI_S.pth", map_location=device))
+policy_net.load_state_dict(torch.load("AI/SailBoat_AI_S.pth", map_location=device))
 
 
 while run:
