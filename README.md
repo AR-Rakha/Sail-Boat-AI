@@ -29,4 +29,4 @@ arrow up: stop sailing
 
 Reach the points on the screen in order  
   
-Notice that point number 1 will always be in the center where the sailboats start 
+*** Notice that point number 1 will always be in the center where the sailboats start ***
