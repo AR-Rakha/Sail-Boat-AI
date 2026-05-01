@@ -129,6 +129,7 @@ class boat:
 
   def setSidewaysGrip(self,sidewaysGrip):
     self.sidewaysGrip = sidewaysGrip
+
   def setSpeedScala(self,scala):
     self.speedScala = scala
 
@@ -367,7 +368,7 @@ class boat:
     for x in range(len(self.points)-self.targetIndex):
       pg.draw.circle(screen, color, (self.points[x+self.targetIndex][0],self.points[x+self.targetIndex][1]), radius)
       textImg = font.render(str(x+self.targetIndex+1), True, fontColor)
-      text_width, text_height = font.size(str(x+self.targetIndex+1)) #txt being whatever str you're rendering
+      text_width, text_height = font.size(str(x+self.targetIndex+1))
       screen.blit(textImg, (self.points[x+self.targetIndex][0]-text_width/2,self.points[x+self.targetIndex][1]-text_height/2))
 
   def getPoints(self):
@@ -436,8 +437,6 @@ class boat:
       self.speedTowardTarget,
       self.angle_vel,
       distNorm], dtype=np.float32)
-
-    '''self.nextDirY,self.nextDirX,distNorm'''
 
     return obs
   
